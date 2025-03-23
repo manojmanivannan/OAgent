@@ -1,5 +1,5 @@
 
-import asyncio
+import asyncio, time
 import streamlit as st
 import uuid
 import re
@@ -58,14 +58,15 @@ async def main():
                         continue
                     elif event.type == "run_item_stream_event":
                         if event.item.type == "tool_call_item":
-                            response_text = "-- Tool was called"
+                            response_text = f"-- Tool was called by {event.item.agent.name}"
                         elif event.item.type == "tool_call_output_item":
-                            response_text = f"🔴 Tool output: {event.item.output}"
+                            response_text = f"🔴 Tool output {event.item.output[:20]}..."
                         elif event.item.type == "handoff_output_item":
                             response_text = f"🟡 Handoff '{event.item.source_agent.name}' -> '{event.item.target_agent.name}'"
                         elif event.item.type == "message_output_item":
                             response_text = re.sub(r'<think>.*?</think>\s*', '', ItemHelpers.text_message_output(event.item), flags=re.DOTALL)
                         typing_placeholder.markdown(response_text)
+                    await asyncio.sleep(0.5)
             except APITimeoutError:
                 response_text = "Unable to reach AI"
 

@@ -16,7 +16,7 @@ faq_agent = Agent[AirlineAgentContext](
     Use the following routine to support the customer.
     # Routine
     1. Identify the last question asked by the customer.
-    2. Use the faq lookup tool to answer the question. Do not rely on your own knowledge.
+    2. Use the faq lookup tool to answer the question. Do not rely on your own knowledge. Answer only what is asked about.
     3. If you cannot answer the question, transfer back to the triage agent.""",
     tools=[faq_lookup_tool],
     model=model,
