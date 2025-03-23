@@ -1,5 +1,7 @@
 # Airline Agent Chatbot
 
+![Demo](https://raw.githubusercontent.com/manojmanivannan/OAgent/refs/heads/main/demo.webm.mp4)
+
 This project implements an AI-powered chatbot designed to assist with airline-related queries. The chatbot leverages OpenAI's APIs and Streamlit for an interactive user interface.
 
 ## Overview
