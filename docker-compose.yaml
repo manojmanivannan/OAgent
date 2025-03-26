@@ -3,8 +3,34 @@ services:
     build:
       context: ./flight_server
       dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://postgres:password@postgres:5432/flights
     ports:
       - "8000:8000"
+
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./flight_server
+          target: /app
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=flights
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   application:
     build:
@@ -12,6 +38,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8501:8501"
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app
     environment:
       - USE_EXTERNAL_CLIENT=$USE_EXTERNAL_CLIENT
       - EXTERNAL_BASE_URL=$EXTERNAL_BASE_URL
@@ -26,3 +57,6 @@ services:
       - OPENAI_API_KEY=$OPENAI_API_KEY
     depends_on:
       - flight_server
+
+volumes:
+  postgres_data:

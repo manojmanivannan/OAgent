@@ -1,15 +1,17 @@
 from sqlalchemy import create_engine, Column, Integer, String, Double
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.types import ARRAY
 import random
 from datetime import datetime, timedelta
 import argparse, os
 
 
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{os.path.abspath(os.path.join(os.path.dirname(__file__), './flights.db'))}"
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+print(SQLALCHEMY_DATABASE_URL)
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -24,14 +26,14 @@ class Flight(Base):
     departing_time = Column(String)
     flight_duration = Column(Double)
     arrival_time = Column(String)
-    available_seats = Column(String)  # comma-separated list of seats
+    available_seats = Column(ARRAY(String))  # comma-separated list of seats
 
 class Booking(Base):
     __tablename__ = "bookings"
     id = Column(Integer, primary_key=True, index=True)
     flight_number = Column(String, index=True)
     passenger_name = Column(String)
-    seat_number = Column(String)
+    seat_numbers = Column(ARRAY(String))
     confirmation_number = Column(String)
     
 # Create all tables based on the defined models
@@ -65,13 +67,13 @@ def seed_database(num_flights=10):
         flight_duration = random.randint(1, 24) + random.random()
         arrival_time = (start_time + timedelta(hours=flight_duration)).strftime("%Y-%m-%d %H:%M:%S")
         # Generate a comma-separated list of 12 available seats (rows 1-3, seats A-D)
-        available_seats = ",".join([f"{row}{seat}" for row in range(10,20) for seat in "ABCD"])
+        available_seats = [f"{seat}{row}" for row in range(10,20) for seat in "ABCD"]
         flight = Flight(
             flight_number=flight_number,
             from_city=from_city,
             to_city=to_city,
             departing_time=departing_time,
-            available_seats=available_seats,
+            available_seats=sorted(available_seats),
             flight_duration=flight_duration,
             arrival_time=arrival_time
         )
@@ -85,7 +87,7 @@ def seed_database(num_flights=10):
 
 
 
-seed_database(100)
+seed_database(200)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed flight database with random flights.")
