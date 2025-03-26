@@ -1,7 +1,7 @@
 from langchain_community.document_loaders import DirectoryLoader
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 import os
-from src.config import config
+from config import config
 from uuid import uuid4
 import chromadb
 from langchain_chroma import Chroma
@@ -9,7 +9,7 @@ from langchain_chroma import Chroma
 class ChromaClient:
     def __init__(self):
         self.embeddings = config.embeddings  # use shared embeddings from config
-        etc_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../etc"))
+        etc_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "./etc"))
         chromadb_path = os.path.join(etc_path,"chroma_langchain_db")
 
         if os.path.exists(chromadb_path):

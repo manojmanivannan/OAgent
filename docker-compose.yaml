@@ -1,0 +1,28 @@
+services:
+  flight_server:
+    build:
+      context: ./flight_server
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+
+  application:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      - USE_EXTERNAL_CLIENT=$USE_EXTERNAL_CLIENT
+      - EXTERNAL_BASE_URL=$EXTERNAL_BASE_URL
+      - EXTERNAL_API_KEY=$EXTERNAL_API_KEY
+      - EXTERNAL_LLM_MODEL=$EXTERNAL_LLM_MODEL
+      - EXTERNAL_EMB_MODEL=$EXTERNAL_EMB_MODEL
+      - OPENAI_MODEL=$OPENAI_MODEL
+      - LANGSMITH_TRACING=$LANGSMITH_TRACING
+      - LANGSMITH_ENDPOINT=$LANGSMITH_ENDPOINT
+      - LANGSMITH_API_KEY=$LANGSMITH_API_KEY
+      - LANGSMITH_PROJECT=$LANGSMITH_PROJECT
+      - OPENAI_API_KEY=$OPENAI_API_KEY
+    depends_on:
+      - flight_server

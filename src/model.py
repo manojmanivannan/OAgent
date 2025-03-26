@@ -2,7 +2,7 @@ from openai import AsyncOpenAI
 from agents import set_default_openai_client
 from agents import OpenAIChatCompletionsModel
 from pydantic import BaseModel
-from src.config import config
+from config import config
 
 
 class AirlineAgentContext(BaseModel):

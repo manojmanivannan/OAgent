@@ -1,4 +1,5 @@
 __pycache__
 .venv
 .env
-etc/chroma_langchain_db
+src/etc/chroma_langchain_db
+flight_server/flights.db

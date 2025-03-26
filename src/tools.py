@@ -1,75 +1,12 @@
-import random
+import random, requests
 from agents import function_tool, RunContextWrapper
-from src.model import AirlineAgentContext
+from model import AirlineAgentContext
 from itertools import product
-from src.chroma import client as chroma_client
-
-
-def generate_flights():
-    from_cities = [
-        "New York",
-        "London",
-        "Tokyo",
-        "Sydney",
-        "Dubai",
-        "Los Angeles",
-        "Hong Kong",
-        "Chicago",
-        "Madrid",
-        "Seoul",
-    ]
-    to_cities = [
-        "Paris",
-        "Berlin",
-        "Mumbai",
-        "Toronto",
-        "Singapore",
-        "Rome",
-        "Beijing",
-        "Bangkok",
-        "Mexico City",
-        "Cape Town",
-    ]
-    departing_times = [
-        "00:15",
-        "04:45",
-        "08:20",
-        "10:30",
-        "12:10",
-        "15:30",
-        "18:50",
-        "21:15",
-        "23:55",
-    ]
-
-    flights = []
-    flight_id = 1
-
-    # Generate all combinations of from_cities and to_cities
-    for from_city, to_city in product(from_cities, to_cities):
-        if from_city != to_city:  # Exclude flights from a city to itself
-            # Pick 3 unique departure times for each city pair
-            times = random.sample(departing_times, 3)
-
-            # Generate seats in a predictable order
-            seat_columns = "A B C D E F".split()
-            seat_rows = range(10, 15)
-            available_seats = [
-                f"{column}{row:02}" for column in seat_columns for row in seat_rows
-            ]
-
-            # Create 3 flights for each from-to combination
-            for time in times:
-                flights.append(
-                    [f"FL{flight_id:03}", from_city, to_city, time, available_seats]
-                )
-                flight_id += 1
-
-    return flights
+from chroma import client as chroma_client
 
 
 @function_tool(
-    name_override="list_all_flights",
+    name_override="find_available_flights",
     description_override="List all flights between two cities.",
 )
 async def find_available_flights(
@@ -78,20 +15,19 @@ async def find_available_flights(
     """
     List options of flights for two given cities
     """
-    flights = generate_flights()
-    available_flights = [
-        (flight, from_c, to_c, time, seat)
-        for flight, from_c, to_c, time, seat in flights
-        if from_c == from_city and to_c == to_city
-    ]
+    # get the flights available by requesting the endpoint /flights?from_city=...&to_city=...
+    flights = requests.get(
+        f"http://localhost:8000/flights?from_city={from_city}&to_city={to_city}"
+    ).json()
 
     context.context.from_city = from_city
     context.context.to_city = to_city
     return "\n".join(
-        [f"Flight {fl} - departing at {t}" for fl, _, _, t, seats in available_flights]
+        [
+            f"Flight {s.get('flight_number')} - departing at {s.get('departing_time')}"
+            for s in flights
+        ]
     )  # Return up to 5 flights
-
-
 
 
 @function_tool(
@@ -99,14 +35,16 @@ async def find_available_flights(
     description_override="Lookup frequently asked questions.",
 )
 async def faq_lookup_tool(question: str) -> str:
-    
     result = chroma_client.similarity_search(question)
-    
-    return "FAQ result\n"+result
+
+    return "FAQ result\n" + result
 
 
-@function_tool
-async def book_seat(
+@function_tool(
+    name_override="book_flight_seat",
+    description_override="Book a flight seat.",
+)
+async def book_flight_seat(
     context: RunContextWrapper[AirlineAgentContext],
     flight_number: str,
     passenger_name: str = None,
@@ -114,6 +52,11 @@ async def book_seat(
     """
     Book a new flight given from and to cities and return flight confirmation
     """
+    # get the response content as list
+    flights = requests.get(
+        f"http://localhost:8000/flights?flight_number={flight_number}"
+    ).json()
+
     assert passenger_name is not None, "Please provide the passenger name"
     assert context.context.from_city is not None, (
         "Please find flights using flight search agent"
@@ -121,7 +64,7 @@ async def book_seat(
     assert context.context.to_city is not None, (
         "Please find flights using flight search agent"
     )
-    assert flight_number in [fno for fno, _, _, _, _ in generate_flights()], (
+    assert flight_number in [s.get("flight_number") for s in flights], (
         f"Flight {flight_number} does not exist. Available flights are {find_available_flights(from_city=context.context.from_city, to_city=context.context.to_city)}"
     )
     context.context.passenger_name = passenger_name
@@ -135,8 +78,11 @@ async def book_seat(
     return f"Booking number {context.context.confirmation_number} confirmed | flight {flight_number} from {context.context.from_city} to {context.context.from_city} with seat number {context.context.seat_number} booked for {passenger_name}"
 
 
-@function_tool
-async def update_seat(
+@function_tool(
+    name_override="update_flight_seat",
+    description_override="Update the seat for a given confirmation number.",
+)
+async def update_flight_seat(
     context: RunContextWrapper[AirlineAgentContext],
     confirmation_number: str,
     new_seat: str,
@@ -152,11 +98,15 @@ async def update_seat(
     assert context.context.confirmation_number == confirmation_number, (
         f"Booking confirmation {confirmation_number} does not exist, Please try again."
     )
-    availabe_seats = [
-        seats
-        for s, _, _, _, seats in generate_flights()
-        if s == context.context.flight_number
-    ][0]
+
+    availabe_seats = (
+        requests.get(
+            f"http://localhost:8000/flights?flight_number={context.context.flight_number}"
+        )
+        .json()[0]
+        .get("available_seats")
+    )
+
     assert new_seat in availabe_seats, f"Only seats {availabe_seats} are available"
     context.context.seat_number = new_seat
     # Ensure that the flight number has been set by the incoming handoff
