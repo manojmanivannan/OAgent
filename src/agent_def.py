@@ -1,9 +1,13 @@
-
 from agents import Agent, handoff
-from tools import faq_lookup_tool, update_flight_seat, book_flight_seat, find_available_flights,on_seat_booking_handoff
+from tools import (
+    faq_lookup_tool,
+    update_flight_seat,
+    book_flight_seat,
+    find_available_flights,
+    on_seat_booking_handoff,
+)
 from model import model, AirlineAgentContext
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
-
 
 
 ### AGENTS
@@ -61,15 +65,14 @@ triage_agent = Agent[AirlineAgentContext](
     name="Triage Agent",
     handoff_description="A triage agent that can delegate a customer's request to the appropriate agent.",
     instructions=(
-        f"{RECOMMENDED_PROMPT_PREFIX} "
-        "You are a helpful triaging agent. You can use your tools to delegate questions to other appropriate agents."
+        f"{RECOMMENDED_PROMPT_PREFIX} You are a helpful triaging agent. You can use your tools to delegate questions to other appropriate agents."
     ),
     handoffs=[
         faq_agent,
         flight_search_agent,
         handoff(agent=flight_booking_agent, on_handoff=on_seat_booking_handoff),
     ],
-    model=model
+    model=model,
 )
 
 flight_search_agent.handoffs.append(triage_agent)

@@ -6,13 +6,12 @@ from config import config
 class AirlineAgentContext(BaseModel):
     passenger_name: str | None = None
     confirmation_number: str | None = None
-    seat_number: str | None = None
+    seat_numbers: str | None = None
     flight_number: str | None = None
     from_city: str | None = None
     to_city: str | None = None
     mcp_config_path: str = "mcp_agent.config.yaml"
     mcp_config: str = None
-
 
 
 model = OpenAIChatCompletionsModel(
