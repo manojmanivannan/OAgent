@@ -1,7 +1,7 @@
 
 from agents import Agent, handoff
-from src.tools import faq_lookup_tool, update_seat, book_seat, find_available_flights,on_seat_booking_handoff
-from src.model import model, AirlineAgentContext
+from tools import faq_lookup_tool, update_flight_seat, book_flight_seat, find_available_flights,on_seat_booking_handoff
+from model import model, AirlineAgentContext
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
 
@@ -27,16 +27,17 @@ flight_booking_agent = Agent[AirlineAgentContext](
     handoff_description="A helpful agent that can book a flight or update a seat on a flight.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are a flight booking agent. If you are speaking to a customer, you probably were transferred to from the triage agent or flight search agent.
-    Use the following routing to support the customer in case of booking a new seat in flight
+    Use the following routine to support the customer in case of booking a new seat in flight
     # Routine
-    1. Ask for flight number, if they dont provide one, transfer to flight search agent to search for flights.
+    1. Ask for flight number. if they dont provide one, transfer to flight search agent to search for flights.
+    2. Use the book flight seat tool to book the seat on the flight.
     Use the following routine to support the customer in case of updating their seat
     # Routine
     1. Ask for their confirmation number.
     2. Ask the customer what their desired seat number is.
-    3. Use the update seat tool to update the seat on the flight.
+    3. Use the update flight seat tool to update the seat on the flight.
     If the customer asks a question that is not related to the routine, transfer back to the triage agent. """,
-    tools=[update_seat, book_seat],
+    tools=[update_flight_seat, book_flight_seat],
     model=model,
 )
 
@@ -45,11 +46,11 @@ flight_search_agent = Agent[AirlineAgentContext](
     handoff_description="A helpful agent that can find flights between two cities",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are a flight searching agent. If you are speaking to a customer, you probably were transferred to from the triage agent.
-    Use the following routing to support the customer in case of searching for flights
-    # Routing
-    1. Ask for departing city if not in the user question
-    2. Ask for arriving city if not in the user question
-    3. Use the list_all_flights tool to get the list of available flights.
+    Use the following routine to support the customer in case of searching for flights
+    # Routine
+    1. Confirm the departing city.
+    2. Confirm the arrival city.
+    3. Use the find_available_flights tool to get the list of available flights.
     If the customer asks a question that is not related to the routine, transfer back to the triage agent.
     """,
     tools=[find_available_flights],

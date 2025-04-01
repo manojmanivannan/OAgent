@@ -1,0 +1,84 @@
+services:
+  flight_server:
+    build:
+      context: ./flight_server
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://postgres:password@postgres:5432/flights
+    ports:
+      - "8000:8000"
+
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./flight_server
+          target: /app
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_DB=$POSTGRES_DB
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  application:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app
+    environment:
+      - USE_EXTERNAL_CLIENT=$USE_EXTERNAL_CLIENT
+      - EXTERNAL_BASE_URL=$EXTERNAL_BASE_URL
+      - EXTERNAL_API_KEY=$EXTERNAL_API_KEY
+      - EXTERNAL_LLM_MODEL=$EXTERNAL_LLM_MODEL
+      - EXTERNAL_EMB_MODEL=$EXTERNAL_EMB_MODEL
+      - OPENAI_MODEL=$OPENAI_MODEL
+      - LANGSMITH_TRACING=$LANGSMITH_TRACING
+      - LANGSMITH_ENDPOINT=$LANGSMITH_ENDPOINT
+      - LANGSMITH_API_KEY=$LANGSMITH_API_KEY
+      - LANGSMITH_PROJECT=$LANGSMITH_PROJECT
+      - OPENAI_API_KEY=$OPENAI_API_KEY
+    depends_on:
+      - flight_server
+
+  ollama:
+    container_name: ollama
+    image: ollama/ollama
+    pull_policy: always
+    ports:
+      - "11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+    post_start:
+      - command: |
+          ollama pull qwq && ollama pull nomic-embed-text && ollama pull hengwen/watt-tool-8B
+
+volumes:
+  postgres_data:
+  ollama:
+    external: true

@@ -3,6 +3,12 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
+    "compounds": [
+        {
+            "name": "Run ALL",
+            "configurations": ["Streamlit App", "Fast API Server"]
+        }
+    ],
     "configurations": [
 
         {
@@ -12,7 +18,7 @@
             "module": "streamlit",
             "args": [
                  "run",
-                 "main.py",
+                 "src/main.py",
                  "--server.port",
                  "8501",
                  "--theme.base",
@@ -20,6 +26,23 @@
                  "--server.headless",
                  "true"
             ]
+        },
+        {
+            "name": "Fast API Server",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "console": "integratedTerminal",
+            "args": [
+                "flight_server.main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8000"
+            ],
+            "env":{
+                "PYTHONPATH": "${workspaceFolder}/flight_server"
+            }
         }
     ]
 }
