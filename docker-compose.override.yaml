@@ -1,0 +1,20 @@
+services:
+  ollama:
+    container_name: ollama
+    image: ollama/ollama
+    pull_policy: always
+    ports:
+      - "11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ollama:/root/.ollama
+    post_start:
+      - command: |
+          ollama pull qwq && ollama pull nomic-embed-text && ollama pull hengwen/watt-tool-8B
+    # entrypoint: ["/bin/sh", "-c", "if [ \"$USE_EXTERNAL_CLIENT\" = \"False\" ]; then exit 0; else exec ollama; fi"]

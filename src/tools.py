@@ -123,45 +123,72 @@ async def book_flight_seat(
 async def update_flight_seat(
     context: RunContextWrapper[AirlineAgentContext],
     confirmation_number: str,
-    new_seat: str,
+    no_of_seats: int = 1,
+    from_seat: str = None,
+    to_seat: str = None,
 ) -> str:
     """
     Update the seat for a given confirmation number.
 
     Args:
         confirmation_number: The confirmation number for the flight.
-        new_seat: The new seat to update to.
+        no_of_seats: The number of seats to update.
+        from_seat: The current seat number. 
+        to_seat: The new seat number.
     """
     logging.info(
-        f"Updating seat to {new_seat} for confirmation number {confirmation_number}"
+        f"Updating seat {from_seat} to {to_seat} for confirmation number {confirmation_number}"
     )
+    
+    if confirmation_number is None:
+        assert context.context.confirmation_number is not None, (
+            "Please provide a confirmation number or book a flight first."
+        )
+    context.context.confirmation_number = confirmation_number
+    
     try:
         assert context.context.confirmation_number == confirmation_number, (
             f"Booking confirmation {confirmation_number} does not exist, Please try again."
         )
-
+        if context.context.flight_number is None:
+            response = requests.get(
+                "http://flight_server:8000/bookings/flight",
+                params={"confirmation_number": confirmation_number},
+            )
+            response.raise_for_status()
+            context.context.flight_number = response.json().get("flight_number")
+            
+        logging.info(
+            f"Fetching available seats for flight {context.context.flight_number}"
+        )
         availabe_seats = (
             requests.get(
-                "http://flight_server:8000/flights",
+                "http://flight_server:8000/flights/search",
                 params={
                     "flight_number": context.context.flight_number,
                 },
             )
-            .json()[0]
-            .get("available_seats")
+            .json()
         )
-
-        assert new_seat in availabe_seats, f"Only seats {availabe_seats} are available"
-        context.context.seat_number = new_seat
+        logging.info(f"Available seats: {availabe_seats}")
+        availabe_seats = availabe_seats[0].get("available_seats")
+        
+        assert to_seat in availabe_seats, f"Only seats {availabe_seats} are available"
+        # context.context.seat_numbers = to_seat
         # Ensure that the flight number has been set by the incoming handoff
-        assert context.context.flight_number is not None, "Flight number is required"
+        # assert context.context.flight_number is not None, "Flight number is required"
         response = requests.put(
-            f"http://flight_server:8000/bookings/amend/{context.context.flight_number}",
+            "http://flight_server:8000/bookings/amend",
+            params={
+                "confirmation_number": confirmation_number,
+                "seat_number_from": from_seat,
+                "seat_number_to": to_seat,
+            },
         )
-        logging.info(f"Seat updated successfully to {new_seat}")
-        return (
-            f"Updated seat to {new_seat} for confirmation number {confirmation_number}"
-        )
+        response.raise_for_status()
+        logging.info(f"Seat updated successfully from {from_seat} to {to_seat}")
+        return response.json()
+    
     except Exception as e:
         logging.error(f"Error while updating seat: {e}")
         return f"Error: {e}"

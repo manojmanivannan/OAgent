@@ -317,3 +317,41 @@ async def search_booking_by_flight(flight_number: str, db: Session = Depends(get
     except Exception as e:
         logging.error(f"Error while searching bookings: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+# get flight number from booking confirmation
+@booking_router.get("/flight")
+async def search_flight_by_booking(confirmation_number: str, db: Session = Depends(get_db)):
+    logging.info(f"Searching flight for booking {confirmation_number}")
+    try:
+        booking = (
+            db.query(Booking)
+            .filter(Booking.confirmation_number == confirmation_number)
+            .first()
+        )
+        if not booking:
+            raise HTTPException(
+                status_code=404, detail=f"Booking {confirmation_number} not found"
+            )
+
+        flight = (
+            db.query(Flight)
+            .filter(Flight.flight_number == booking.flight_number)
+            .first()
+        )
+        if not flight:
+            raise HTTPException(
+                status_code=404, detail=f"Flight {booking.flight_number} not found"
+            )
+
+        return {
+            "flight_number": flight.flight_number,
+            "departure_city": flight.from_city,
+            "arrival_city": flight.to_city,
+            "departing_time": flight.departing_time,
+            "arrival_time": flight.arrival_time,
+            "flight_duration": flight.flight_duration,
+        }
+    except Exception as e:
+        logging.error(f"Error while searching flight: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
