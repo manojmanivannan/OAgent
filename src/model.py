@@ -1,5 +1,3 @@
-from openai import AsyncOpenAI
-from agents import set_default_openai_client
 from agents import OpenAIChatCompletionsModel
 from pydantic import BaseModel
 from config import config
@@ -15,8 +13,6 @@ class AirlineAgentContext(BaseModel):
     mcp_config_path: str = "mcp_agent.config.yaml"
     mcp_config: str = None
 
-
-set_default_openai_client(config.llm_client)
 
 
 model = OpenAIChatCompletionsModel(
