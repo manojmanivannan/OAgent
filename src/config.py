@@ -29,6 +29,7 @@ class ConfigManager:
                 api_key=self.env_vars.get("EXTERNAL_API_KEY")
             )
             self.model_name = self.env_vars.get("EXTERNAL_LLM_MODEL")
+            print(f"Using external client base model: {self.model_name}, embedding model: {self.env_vars.get('EXTERNAL_EMB_MODEL')}")
         else:
             self.embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
             self.llm_client = AsyncOpenAI() 
